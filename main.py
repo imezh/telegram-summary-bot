@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 
@@ -55,6 +56,11 @@ def build_application() -> Application:
 
 
 def main() -> None:
+    # Python 3.10+ no longer auto-creates an event loop; set one explicitly
+    # so that PTB's run_webhook (which calls asyncio.get_event_loop()) works.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     application = build_application()
     logger.info("Starting webhook on port %d", PORT)
     application.run_webhook(
