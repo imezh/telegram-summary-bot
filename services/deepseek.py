@@ -110,3 +110,35 @@ async def summarize(text: str) -> str:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": combined},
     ])
+
+
+KEY_IDEAS_PROMPT = """Extract the most important ideas and insights from the text.
+
+Output only two sections:
+- IDEAS: 10-20 most surprising/insightful ideas, each exactly 16 words
+- INSIGHTS: 5-10 refined abstract insights, each exactly 16 words
+
+Only output Markdown bullet lists. No warnings, no extra text."""
+
+
+async def key_ideas(text: str) -> str:
+    if len(text) <= MAX_CHARS:
+        return await _call_api([
+            {"role": "system", "content": KEY_IDEAS_PROMPT},
+            {"role": "user", "content": text},
+        ])
+
+    chunks = [text[i:i + CHUNK_SIZE] for i in range(0, len(text), CHUNK_SIZE)]
+    chunk_summaries = []
+    for i, chunk in enumerate(chunks, 1):
+        summary = await _call_api([
+            {"role": "system", "content": KEY_IDEAS_PROMPT},
+            {"role": "user", "content": chunk},
+        ])
+        chunk_summaries.append(f"**Part {i}:**\n{summary}")
+
+    combined = "\n\n".join(chunk_summaries)
+    return await _call_api([
+        {"role": "system", "content": KEY_IDEAS_PROMPT},
+        {"role": "user", "content": combined},
+    ])

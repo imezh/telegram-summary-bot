@@ -2,19 +2,17 @@ import asyncio
 import os
 import logging
 
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
-    ConversationHandler,
     filters,
 )
 
-from handlers.states import CHOOSING, WAITING_DOCUMENT, WAITING_YOUTUBE
-from handlers.start import start, menu_callback, back_to_menu
-from handlers.document import handle_document
-from handlers.youtube import handle_youtube
+from handlers.detect import detect_content
+from handlers.actions import handle_action
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -27,37 +25,34 @@ DEEPSEEK_API_KEY = os.environ["DEEPSEEK_API_KEY"]  # read by services/deepseek.p
 WEBHOOK_URL = os.environ["WEBHOOK_URL"]
 PORT = int(os.environ.get("PORT", 8000))
 
+_WELCOME = (
+    "Привет! Просто пришли мне:\n"
+    "• YouTube-ссылку\n"
+    "• Ссылку на статью\n"
+    "• Документ (PDF, DOCX, TXT)\n"
+    "• Или любой текст\n\n"
+    "Я определю тип контента и предложу варианты обработки."
+)
+
+
+async def start_command(update: Update, _) -> None:
+    await update.message.reply_text(_WELCOME)
+
 
 def build_application() -> Application:
     app = Application.builder().token(BOT_TOKEN).build()
 
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            CHOOSING: [
-                CallbackQueryHandler(menu_callback, pattern="^(doc|yt|menu)$"),
-            ],
-            WAITING_DOCUMENT: [
-                MessageHandler(filters.Document.ALL, handle_document),
-                CallbackQueryHandler(menu_callback, pattern="^menu$"),
-            ],
-            WAITING_YOUTUBE: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_youtube),
-                CallbackQueryHandler(menu_callback, pattern="^menu$"),
-            ],
-        },
-        fallbacks=[
-            CommandHandler("start", start),
-        ],
-    )
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CallbackQueryHandler(handle_action, pattern="^action:"))
+    app.add_handler(MessageHandler(
+        (filters.TEXT | filters.Document.ALL) & ~filters.COMMAND,
+        detect_content,
+    ))
 
-    app.add_handler(conv_handler)
     return app
 
 
 def main() -> None:
-    # Python 3.10+ no longer auto-creates an event loop; set one explicitly
-    # so that PTB's run_webhook (which calls asyncio.get_event_loop()) works.
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
