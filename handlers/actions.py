@@ -1,4 +1,5 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 from services.deepseek import summarize, key_ideas
@@ -50,11 +51,11 @@ async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     chunks = [result[i:i + 4096] for i in range(0, len(result), 4096)]
     for idx, chunk in enumerate(chunks):
         is_last = idx == len(chunks) - 1
-        await query.message.reply_text(
-            chunk,
-            reply_markup=_RETRY_KEYBOARD if is_last else None,
-            parse_mode="Markdown",
-        )
+        kwargs = {"reply_markup": _RETRY_KEYBOARD if is_last else None}
+        try:
+            await query.message.reply_text(chunk, parse_mode="Markdown", **kwargs)
+        except BadRequest:
+            await query.message.reply_text(chunk, **kwargs)
 
 
 async def _extract_text(content_type: str, context: ContextTypes.DEFAULT_TYPE) -> str:

@@ -42,6 +42,8 @@ Take a step back and think step-by-step about how to achieve the best possible r
 
 # OUTPUT INSTRUCTIONS
 
+- Always respond in Russian language.
+
 - Only output Markdown.
 
 - Write the IDEAS bullets as exactly 16 words.
@@ -118,7 +120,7 @@ Output only two sections:
 - IDEAS: 10-20 most surprising/insightful ideas, each exactly 16 words
 - INSIGHTS: 5-10 refined abstract insights, each exactly 16 words
 
-Only output Markdown bullet lists. No warnings, no extra text."""
+Always respond in Russian language. Only output Markdown bullet lists. No warnings, no extra text."""
 
 
 async def key_ideas(text: str) -> str:

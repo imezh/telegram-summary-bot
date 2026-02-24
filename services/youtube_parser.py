@@ -20,17 +20,16 @@ def get_transcript(url: str) -> str:
     if not video_id:
         raise ValueError("Не удалось извлечь ID видео из URL.")
 
-    transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+    api = YouTubeTranscriptApi()
 
-    # Try manual transcripts first (ru, en), then auto-generated
+    # Try ru/en first, then fall back to any available transcript
     try:
-        transcript = transcript_list.find_transcript(["ru", "en"])
-    except NoTranscriptFound:
-        # Fall back to any available transcript (auto-generated)
+        fetched = api.fetch(video_id, languages=["ru", "en"])
+    except (NoTranscriptFound, Exception):
+        transcript_list = api.list(video_id)
         transcripts = list(transcript_list)
         if not transcripts:
             raise NoTranscriptFound(video_id, ["ru", "en"], [])
-        transcript = transcripts[0]
+        fetched = transcripts[0].fetch()
 
-    entries = transcript.fetch()
-    return " ".join(entry["text"] for entry in entries).strip()
+    return " ".join(snippet.text for snippet in fetched).strip()
