@@ -1,10 +1,18 @@
 import os
 from openai import AsyncOpenAI
 
-client = AsyncOpenAI(
-    api_key=os.environ["DEEPSEEK_API_KEY"],
-    base_url="https://api.deepseek.com",
-)
+_client: AsyncOpenAI | None = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(
+            api_key=os.environ["DEEPSEEK_API_KEY"],
+            base_url="https://api.deepseek.com",
+        )
+    return _client
+
 
 SYSTEM_PROMPT = (
     "Ты — помощник, который создаёт структурированные саммари на русском языке. "
@@ -17,7 +25,7 @@ CHUNK_SIZE = 50_000
 
 
 async def _call_api(messages: list[dict]) -> str:
-    response = await client.chat.completions.create(
+    response = await _get_client().chat.completions.create(
         model="deepseek-chat",
         messages=messages,
         max_tokens=2048,
