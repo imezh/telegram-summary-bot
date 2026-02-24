@@ -45,19 +45,16 @@ async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await query.edit_message_text(f"❌ Ошибка при обработке: {exc}")
         return
 
-    # Telegram message limit is 4096 chars; split if needed
-    if len(result) <= 4096:
-        await query.edit_message_text(result, reply_markup=_RETRY_KEYBOARD, parse_mode="Markdown")
-    else:
-        await query.edit_message_text(result[:4096], parse_mode="Markdown")
-        for i in range(4096, len(result), 4096):
-            chunk = result[i:i + 4096]
-            is_last = (i + 4096) >= len(result)
-            await query.message.reply_text(
-                chunk,
-                reply_markup=_RETRY_KEYBOARD if is_last else None,
-                parse_mode="Markdown",
-            )
+    await query.edit_message_text("✅ Готово")
+
+    chunks = [result[i:i + 4096] for i in range(0, len(result), 4096)]
+    for idx, chunk in enumerate(chunks):
+        is_last = idx == len(chunks) - 1
+        await query.message.reply_text(
+            chunk,
+            reply_markup=_RETRY_KEYBOARD if is_last else None,
+            parse_mode="Markdown",
+        )
 
 
 async def _extract_text(content_type: str, context: ContextTypes.DEFAULT_TYPE) -> str:
